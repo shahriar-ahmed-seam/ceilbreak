@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use CeilBreak in your research or production reasoning pipelines, please cite it as below."
+authors:
+  - family-names: "Seam"
+    given-names: "Shahriar Ahmed"
+title: "CeilBreak: Adaptive Rejection-Sampling-to-GRPO Transition Engine for LLM Reasoning Post-Training"
+version: 0.1.0
+date-released: 2026-10-10
+url: "https://github.com/shahriar-ahmed-seam/ceilbreak"
+keywords:
+  - reinforcement-learning
+  - rejection-sampling
+  - grpo
+  - rest-em
+  - reasoning
+  - llm
+  - verifiable-rewards
+license: Apache-2.0
