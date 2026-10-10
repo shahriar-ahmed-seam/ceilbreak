@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CeilBreak Telemetry Console — ReST-EM vs GRPO Transition Engine</title>
+  <style>
+    :root {
+      --bg-base: #090b0e;
+      --bg-surface: #101318;
+      --bg-subtle: #161b22;
+      --bg-elevated: #1c2128;
+      --border-hairline: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(255, 255, 255, 0.20);
+      --text-primary: #f0f6fc;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent-orange: #d97706;
+      --accent-orange-subtle: rgba(217, 119, 6, 0.12);
+      --accent-emerald: #10b981;
+      --accent-emerald-subtle: rgba(16, 185, 129, 0.12);
+      --accent-blue: #3b82f6;
+      --accent-blue-subtle: rgba(59, 130, 246, 0.12);
+      --accent-rose: #f43f5e;
+      --accent-rose-subtle: rgba(244, 63, 94, 0.12);
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header Nav */
+    header {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-hairline);
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .brand svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--text-primary);
+    }
+
+    .tagline {
+      font-size: 11px;
+      color: var(--text-muted);
+      border-left: 1px solid var(--border-hairline);
+      padding-left: 10px;
+      font-family: var(--font-mono);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border-hairline);
+      background: var(--bg-subtle);
+    }
+
+    .ping-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border-hairline);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--border-focus);
+    }
+
+    .btn-primary {
+      background: #1f242c;
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .btn-primary:hover {
+      background: #282f3a;
+    }
+
+    .btn-accent {
+      background: var(--accent-emerald-subtle);
+      border-color: var(--accent-emerald);
+      color: var(--accent-emerald);
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.5;
+    }
+
+    /* Main Grid */
+    main {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* KPI Bar */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .badge-warmup {
+      color: var(--accent-orange);
+      background: var(--accent-orange-subtle);
+      border: 1px solid rgba(217, 119, 6, 0.25);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    .badge-online {
+      color: var(--accent-emerald);
+      background: var(--accent-emerald-subtle);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    /* Whiteboard Principles Banner */
+    .principles-banner {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: 4px;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .principle-box {
+      border-left: 2px solid var(--border-hairline);
+      padding-left: 12px;
+    }
+
+    .principle-box.p1 {
+      border-left-color: var(--accent-orange);
+    }
+
+    .principle-box.p2 {
+      border-left-color: var(--accent-emerald);
+    }
+
+    .principle-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      font-family: var(--font-mono);
+    }
+
+    .principle-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Section Split */
+    .dashboard-split {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-hairline);
+      background: var(--bg-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    /* Chart SVG */
+    .chart-container {
+      width: 100%;
+      height: 240px;
+      position: relative;
+    }
+
+    .chart-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 2px;
+    }
+
+    /* 4 Failure Modes Grid */
+    .modes-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .mode-item {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-hairline);
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+
+    .mode-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .mode-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-stat {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-rose);
+    }
+
+    .mode-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Table & Inspector */
+    .table-container {
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-hairline);
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-hairline);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pill-win {
+      color: var(--accent-emerald);
+      background: var(--accent-emerald-subtle);
+      padding: 2px 5px;
+      border-radius: 3px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .pill-fail {
+      color: var(--accent-rose);
+      background: var(--accent-rose-subtle);
+      padding: 2px 5px;
+      border-radius: 3px;
+      border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .pill-partial {
+      color: var(--accent-orange);
+      background: var(--accent-orange-subtle);
+      padding: 2px 5px;
+      border-radius: 3px;
+      border: 1px solid rgba(217, 119, 6, 0.2);
+    }
+
+    /* Raw Inspector Drawer */
+    .raw-inspector {
+      background: #060709;
+      border: 1px solid var(--border-hairline);
+      border-radius: 4px;
+      padding: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #9ca3af;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
+      <span>CeilBreak Telemetry</span>
+      <span class="tagline">ReST-EM vs GRPO Transition Engine</span>
+    </div>
+
+    <div class="header-actions">
+      <div class="status-badge">
+        <span class="ping-dot"></span>
+        <span id="regime-status-text">INITIALIZING</span>
+      </div>
+
+      <button id="btn-step" class="btn btn-primary" onclick="stepPipeline()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Step Once
+      </button>
+
+      <button id="btn-run" class="btn" onclick="runPipelineBatch()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="13 17 18 12 13 7"></polyline>
+          <polyline points="6 17 11 12 6 7"></polyline>
+        </svg>
+        Run 8 Steps
+      </button>
+
+      <button id="btn-switch" class="btn btn-accent" onclick="forceSwitchGRPO()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="16 3 21 3 21 8"></polyline>
+          <line x1="4" y1="20" x2="21" y2="3"></line>
+          <polyline points="21 16 21 21 16 21"></polyline>
+          <line x1="15" y1="15" x2="21" y2="21"></line>
+        </svg>
+        Switch to GRPO
+      </button>
+
+      <button id="btn-reset" class="btn" onclick="resetPipeline()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+        </svg>
+        Reset
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Whiteboard Principles Reference -->
+    <div class="principles-banner">
+      <div class="principle-box p1">
+        <div class="principle-title">Principle 1: Filtering Learns from What Went Right</div>
+        <div class="principle-desc">
+          ReST-EM fits verified trajectories via MLE. Ignores negative feedback, floods datasets with mastered tasks, and collapses generation entropy as buffer ages.
+        </div>
+      </div>
+      <div class="principle-box p2">
+        <div class="principle-title">Principle 2: Advantage RL Learns from Relative Surprise</div>
+        <div class="principle-desc">
+          GRPO group baseline A_i = (r_i - r̄) / σ penalizes easy failures, heavily rewards hard wins, and zero-weights trivial successes when pass rate plateaus.
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Metric Strip -->
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-label">Training Step</div>
+        <div class="kpi-value" id="val-step">1</div>
+        <div class="kpi-sub" id="val-regime-badge"><span class="badge-warmup">REST_EM_WARMUP</span></div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Pass@1 Accuracy</div>
+        <div class="kpi-value" id="val-pass1">0.00%</div>
+        <div class="kpi-sub" id="val-pass4">Pass@4: 0.00%</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Token Shannon Entropy</div>
+        <div class="kpi-value" id="val-entropy">0.000</div>
+        <div class="kpi-sub" id="val-entropy-sub">Floor: 0.300</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Failure Signal Ratio</div>
+        <div class="kpi-value" id="val-failure-ratio">0.00x</div>
+        <div class="kpi-sub">Informative neg / Mastered pos</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Difficulty Skew Index</div>
+        <div class="kpi-value" id="val-skew">1.00x</div>
+        <div class="kpi-sub">Easy update / Hard update</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Plateau Confidence</div>
+        <div class="kpi-value" id="val-plateau-conf">0.0%</div>
+        <div class="kpi-sub" id="val-plateau-sub">Monitoring slope</div>
+      </div>
+    </div>
+
+    <!-- Main Chart + 4 Failure Modes Split -->
+    <div class="dashboard-split">
+      <div class="panel">
+        <div class="panel-header">
+          <span>Pass Rate Plateau & Ceiling Transition (pass@1 vs Entropy)</span>
+          <span id="chart-subhead" style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">
+            Window slope evaluation
+          </span>
+        </div>
+        <div class="panel-body">
+          <div class="chart-container">
+            <svg id="telemetry-chart" class="chart-svg" viewBox="0 0 700 240"></svg>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item">
+              <span class="legend-color" style="background: #10b981;"></span>
+              <span>Pass@1 Accuracy (%)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background: #3b82f6;"></span>
+              <span>Pass@4 Budget (%)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background: #d97706;"></span>
+              <span>Token Shannon Entropy (x100)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background: #f43f5e; border-top: 1px dashed #f43f5e;"></span>
+              <span>Regime Transition Boundary</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Structural Failure Modes from Whiteboard -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>4 Whiteboard Failure Modes of ReST-EM</span>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Root Cause Analysis</span>
+        </div>
+        <div class="panel-body">
+          <div class="modes-grid">
+            <div class="mode-item">
+              <div class="mode-header">
+                <span class="mode-name">1. Invisible Failures</span>
+                <span class="mode-stat" id="stat-invisible-count">r=0 ignored</span>
+              </div>
+              <div class="mode-desc">
+                Reward 0 gives no gradient direction on what error attractors to avoid.
+              </div>
+            </div>
+
+            <div class="mode-item">
+              <div class="mode-header">
+                <span class="mode-name">2. No Difficulty Sense</span>
+                <span class="mode-stat" id="stat-skew-count">Trivial wins flood</span>
+              </div>
+              <div class="mode-desc">
+                Mastered easy tasks generate 100% passes and dominate gradient updates.
+              </div>
+            </div>
+
+            <div class="mode-item">
+              <div class="mode-header">
+                <span class="mode-name">3. Stale Off-Policy Data</span>
+                <span class="mode-stat" id="stat-stale-ratio">Entropy collapse</span>
+              </div>
+              <div class="mode-desc">
+                Fitting old rollouts repeatedly shrinks token diversity and kills exploration.
+              </div>
+            </div>
+
+            <div class="mode-item">
+              <div class="mode-header">
+                <span class="mode-name">4. No Partial Credit</span>
+                <span class="mode-stat">9/10 tests == 0/10</span>
+              </div>
+              <div class="mode-desc">
+                Binary rejection threshold discards near-miss reasoning trajectories.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Rollout Group Inspector -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Active Prompt Rollout Groups & Relative Advantage Telemetry</span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+          G=4 candidates per prompt
+        </span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Prompt ID</th>
+              <th>Difficulty</th>
+              <th>Problem Spec</th>
+              <th>Pass Rate</th>
+              <th>Group Mean / Std</th>
+              <th>Rollout Trajectories (Reward | Relative Adv $A_i$)</th>
+            </tr>
+          </thead>
+          <tbody id="rollout-table-body">
+            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading rollouts...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Raw Telemetry JSON Inspector -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Raw Telemetry JSON Stream</span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Live REST API Inspector</span>
+      </div>
+      <div class="panel-body">
+        <pre class="raw-inspector" id="raw-json-inspector">{}</pre>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API_BASE = window.location.origin;
+
+    async function fetchTelemetry() {
+      try {
+        const [latestRes, historyRes, groupsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/telemetry/latest`),
+          fetch(`${API_BASE}/api/telemetry/history`),
+          fetch(`${API_BASE}/api/inspect/groups`),
+        ]);
+
+        const latestData = await latestRes.json();
+        const historyData = await historyRes.json();
+        const groupsData = await groupsRes.json();
+
+        updateUI(latestData, historyData, groupsData);
+      } catch (err) {
+        console.error("Telemetry fetch error:", err);
+      }
+    }
+
+    function updateUI(latest, history, groups) {
+      const snap = latest.snapshot;
+      const trans = latest.transition_state;
+
+      // Update KPI
+      document.getElementById('val-step').textContent = snap.step;
+      document.getElementById('regime-status-text').textContent = snap.regime.toUpperCase();
+
+      const isGRPO = snap.regime === 'grpo_online';
+      const regimeBadge = document.getElementById('val-regime-badge');
+      if (isGRPO) {
+        regimeBadge.innerHTML = `<span class="badge-online">GRPO_ONLINE (Advantage RL)</span>`;
+      } else if (trans.plateau_detected) {
+        regimeBadge.innerHTML = `<span class="badge-warmup" style="border-color: var(--accent-rose); color: var(--accent-rose);">PLATEAU_DETECTED</span>`;
+      } else {
+        regimeBadge.innerHTML = `<span class="badge-warmup">REST_EM_WARMUP (Filtering)</span>`;
+      }
+
+      document.getElementById('val-pass1').textContent = `${(snap.pass_at_1 * 100).toFixed(1)}%`;
+      document.getElementById('val-pass4').textContent = `Pass@4: ${(snap.pass_at_4 * 100).toFixed(1)}% | Pass@8: ${(snap.pass_at_8 * 100).toFixed(1)}%`;
+      document.getElementById('val-entropy').textContent = snap.token_entropy.toFixed(3);
+      document.getElementById('val-failure-ratio').textContent = `${snap.failure_signal_ratio.toFixed(2)}x`;
+      document.getElementById('val-skew').textContent = `${snap.difficulty_skew_index.toFixed(2)}x`;
+      document.getElementById('val-plateau-conf').textContent = `${(trans.plateau_confidence * 100).toFixed(1)}%`;
+      document.getElementById('val-plateau-sub').textContent = trans.trigger_reason ? trans.trigger_reason.slice(0, 36) + '...' : 'Monitoring slope';
+
+      // Update failure mode stats
+      document.getElementById('stat-invisible-count').textContent = `Buffer: ${snap.filtered_buffer_size} rollouts`;
+      document.getElementById('stat-skew-count').textContent = `Skew: ${snap.difficulty_skew_index.toFixed(1)}:1`;
+      document.getElementById('stat-stale-ratio').textContent = `Stale: ${(snap.stale_data_ratio * 100).toFixed(0)}%`;
+
+      // Render Chart
+      renderChart(history);
+
+      // Render Groups Table
+      renderRollouts(groups);
+
+      // Raw JSON
+      document.getElementById('raw-json-inspector').textContent = JSON.stringify(latest, null, 2);
+    }
+
+    function renderChart(history) {
+      const svg = document.getElementById('telemetry-chart');
+      if (!history || history.length === 0) return;
+
+      const width = 700;
+      const height = 240;
+      const pad = { top: 20, right: 30, bottom: 30, left: 45 };
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+
+      const maxSteps = Math.max(8, history.length);
+      const xScale = (step) => pad.left + ((step - 1) / (maxSteps - 1 || 1)) * plotW;
+      const yScale = (val) => pad.top + (1.0 - Math.min(1.0, Math.max(0.0, val))) * plotH;
+
+      let p1Points = '';
+      let p4Points = '';
+      let entPoints = '';
+      let transitionX = null;
+
+      history.forEach((h) => {
+        const x = xScale(h.step);
+        const yP1 = yScale(h.pass_at_1);
+        const yP4 = yScale(h.pass_at_4);
+        const yEnt = yScale(h.token_entropy / 1.5); // normalized scale
+
+        p1Points += `${x},${yP1} `;
+        p4Points += `${x},${yP4} `;
+        entPoints += `${x},${yEnt} `;
+
+        if (h.regime === 'grpo_online' && transitionX === null) {
+          transitionX = x;
+        }
+      });
+
+      let svgContent = `
+        <!-- Grid lines -->
+        <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left + plotW}" y2="${pad.top}" stroke="rgba(255,255,255,0.06)" />
+        <line x1="${pad.left}" y1="${pad.top + plotH * 0.25}" x2="${pad.left + plotW}" y2="${pad.top + plotH * 0.25}" stroke="rgba(255,255,255,0.06)" />
+        <line x1="${pad.left}" y1="${pad.top + plotH * 0.5}" x2="${pad.left + plotW}" y2="${pad.top + plotH * 0.5}" stroke="rgba(255,255,255,0.06)" />
+        <line x1="${pad.left}" y1="${pad.top + plotH * 0.75}" x2="${pad.left + plotW}" y2="${pad.top + plotH * 0.75}" stroke="rgba(255,255,255,0.06)" />
+        <line x1="${pad.left}" y1="${pad.top + plotH}" x2="${pad.left + plotW}" y2="${pad.top + plotH}" stroke="rgba(255,255,255,0.12)" />
+
+        <!-- Axes labels -->
+        <text x="10" y="${pad.top + 5}" fill="#6e7681" font-family="monospace" font-size="10">100%</text>
+        <text x="10" y="${pad.top + plotH * 0.5 + 4}" fill="#6e7681" font-family="monospace" font-size="10">50%</text>
+        <text x="10" y="${pad.top + plotH + 4}" fill="#6e7681" font-family="monospace" font-size="10">0%</text>
+      `;
+
+      // Transition marker line
+      if (transitionX !== null) {
+        svgContent += `
+          <line x1="${transitionX}" y1="${pad.top}" x2="${transitionX}" y2="${pad.top + plotH}" stroke="#f43f5e" stroke-dasharray="4 3" stroke-width="1.5" />
+          <text x="${transitionX + 5}" y="${pad.top + 15}" fill="#f43f5e" font-family="monospace" font-size="10">SWITCH TO GRPO</text>
+        `;
+      }
+
+      // Paths
+      svgContent += `
+        <polyline points="${entPoints}" fill="none" stroke="#d97706" stroke-width="1.8" />
+        <polyline points="${p4Points}" fill="none" stroke="#3b82f6" stroke-width="1.8" />
+        <polyline points="${p1Points}" fill="none" stroke="#10b981" stroke-width="2.2" />
+      `;
+
+      // Circles on points
+      history.forEach((h) => {
+        const x = xScale(h.step);
+        svgContent += `
+          <circle cx="${x}" cy="${yScale(h.pass_at_1)}" r="3" fill="#10b981" />
+          <text x="${x}" y="${pad.top + plotH + 18}" fill="#6e7681" font-family="monospace" font-size="10" text-anchor="middle">S${h.step}</text>
+        `;
+      });
+
+      svg.innerHTML = svgContent;
+    }
+
+    function renderRollouts(groupsData) {
+      const tbody = document.getElementById('rollout-table-body');
+      if (!groupsData || !groupsData.groups) return;
+
+      tbody.innerHTML = '';
+      groupsData.groups.forEach((g) => {
+        const tr = document.createElement('tr');
+
+        const pills = g.trajectories.map((t) => {
+          const advStr = (t.advantage >= 0 ? '+' : '') + t.advantage.toFixed(2);
+          if (t.reward_signal.binary_reward === 1) {
+            return `<span class="pill-win">win (${advStr})</span>`;
+          } else if (t.reward_signal.fractional_reward > 0.0) {
+            return `<span class="pill-partial">${t.reward_signal.fractional_reward.toFixed(1)} (${advStr})</span>`;
+          } else {
+            return `<span class="pill-fail">fail (${advStr})</span>`;
+          }
+        }).join(' ');
+
+        tr.innerHTML = `
+          <td><strong>${g.prompt.prompt_id}</strong></td>
+          <td><span style="color: var(--text-secondary);">${g.prompt.difficulty.toUpperCase()}</span></td>
+          <td style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${g.prompt.prompt_text}">${g.prompt.prompt_text}</td>
+          <td>${(g.pass_rate * 100).toFixed(0)}%</td>
+          <td>${g.reward_mean.toFixed(2)} ± ${g.reward_std.toFixed(2)}</td>
+          <td>${pills}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function stepPipeline() {
+      await fetch(`${API_BASE}/api/pipeline/step`, { method: 'POST' });
+      fetchTelemetry();
+    }
+
+    async function runPipelineBatch() {
+      await fetch(`${API_BASE}/api/pipeline/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ total_steps: 8 }),
+      });
+      fetchTelemetry();
+    }
+
+    async function forceSwitchGRPO() {
+      await fetch(`${API_BASE}/api/pipeline/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force_regime: 'grpo_online' }),
+      });
+      fetchTelemetry();
+    }
+
+    async function resetPipeline() {
+      await fetch(`${API_BASE}/api/pipeline/reset`, { method: 'POST' });
+      fetchTelemetry();
+    }
+
+    // Auto initial fetch
+    fetchTelemetry();
+    setInterval(fetchTelemetry, 6000);
+  </script>
+</body>
+</html>

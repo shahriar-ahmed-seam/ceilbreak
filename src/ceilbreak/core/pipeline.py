@@ -100,7 +100,7 @@ class ReasoningPipeline:
                     unit_tests_passed=5,
                     total_unit_tests=5,
                     syntax_valid=True,
-                    reasoning_length=int(np.random.normal(120, 20)),
+                    reasoning_length=max(10, int(np.random.normal(120, 20))),
                     verifier_feedback="Verified solution.",
                 )
                 comp = f"<think>Sound reasoning step for {prompt.prompt_text}</think><answer>{prompt.ground_truth}</answer>"
@@ -115,7 +115,7 @@ class ReasoningPipeline:
                     unit_tests_passed=4 if partial > 0 else 1,
                     total_unit_tests=5,
                     syntax_valid=True,
-                    reasoning_length=int(np.random.normal(80, 25)),
+                    reasoning_length=max(10, int(np.random.normal(80, 25))),
                     verifier_feedback=feedback,
                 )
                 comp = f"<think>Erroneous reasoning</think><answer>Incorrect candidate {idx}</answer>"
